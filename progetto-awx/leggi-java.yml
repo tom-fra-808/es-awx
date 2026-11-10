@@ -1,0 +1,35 @@
+---
+- name: Preleva il sorgente Java dalla VM
+  hosts: all
+  gather_facts: false
+  become: false
+
+  vars:
+    java_source_path: /home/vagrant/esercizio/Example.java
+
+  tasks:
+    - name: Verifica che il job lavori su una sola VM
+      ansible.builtin.assert:
+        that:
+          - ansible_play_hosts_all | length == 1
+        fail_msg: Seleziona una sola VM nell'inventory o nel Limit del Job Template.
+      run_once: true
+
+    - name: Leggi Example.java dalla VM
+      ansible.builtin.slurp:
+        src: "{{ java_source_path }}"
+      register: sorgente
+      no_log: true
+
+    - name: Verifica che il sorgente non sia vuoto
+      ansible.builtin.assert:
+        that:
+          - sorgente.content | length > 0
+        fail_msg: Il sorgente Java è vuoto.
+
+    - name: Rendi disponibile il sorgente al job AWX
+      ansible.builtin.set_stats:
+        data:
+          sorgente_java_base64: "{{ sorgente.content }}"
+        per_host: false
+        aggregate: false
